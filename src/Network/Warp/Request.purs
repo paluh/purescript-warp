@@ -34,14 +34,14 @@ recvRequest httpreq rawHeader = do
             , remoteHost
             , pathInfo 
             , queryString
-            , requestHeaders
+            , requestHeaders: Object.toUnfoldable requestHeaders
             , bodyLength
             , body
             , rawHeader: rawHeader
             , headerHost
-            , headerRange: Object.lookup "range" $ HTTP.requestHeaders httpreq
-            , headerUserAgent: Object.lookup "user-agent" $ HTTP.requestHeaders httpreq
-            , headerReferer: Object.lookup "referer" $ HTTP.requestHeaders httpreq
+            , headerRange: Object.lookup "range" requestHeaders
+            , headerUserAgent: Object.lookup "user-agent" requestHeaders
+            , headerReferer: Object.lookup "referer" requestHeaders
             , rawPathInfo: HTTP.requestURL httpreq
             , rawQueryString: fromMaybe "" $ Nullable.toMaybe url.query
             , isSecure: false
@@ -50,16 +50,16 @@ recvRequest httpreq rawHeader = do
 
 
     where 
+        requestHeaders = HTTP.requestHeaders
         url  = Url.parse $ HTTP.requestURL httpreq
-        requestHeaders =  Object.toUnfoldable $ HTTP.requestHeaders httpreq
         pathInfo = String.split (Pattern "/") $ fromMaybe mempty $ Nullable.toMaybe url.pathname
 
         bodyLength = do
-            let (cl :: Maybe String) = Object.lookup "content-length" $ HTTP.requestHeaders httpreq
+            let (cl :: Maybe String) = Object.lookup "content-length" requestHeaders
             maybe ChunkedBody (KnownLength <<< fromMaybe 0 <<< Int.fromString) cl
 
-        headerHost = fromMaybe "" $ Object.lookup "host" $ HTTP.requestHeaders httpreq
- 
+        headerHost = fromMaybe "" $ Object.lookup "host" requestHeaders
+
         queryString = maybe Object.empty (unsafeCoerce <<< Url.parseQueryString) $ Nullable.toMaybe url.query
 
         method = case (Method.fromString $ HTTP.requestMethod httpreq) of 
